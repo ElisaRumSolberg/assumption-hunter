@@ -1,0 +1,16 @@
+{
+  "id": "case_002",
+  "name": "Empty Search Results",
+  "description": "Search can return zero results, but the code assumes at least one match always exists.",
+  "project_path": "evaluation/cases/case_002_empty_search_results/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "Search results are never empty.",
+      "category": "data",
+      "severity": "medium",
+      "evidence_files": ["src/search.py"],
+      "expected_failure": "Indexing results[0] on an empty list raises IndexError."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "case": "case_001_nullable_email",
+  "baseline": {
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "Every User object passed to normalize_email has a non-null email address.",
+          "category": "data",
+          "evidence": "src/users.py",
+          "risk": "Calling .lower() or .strip() on a NoneType object will raise an AttributeError, causing the application to crash when processing users who were initialized without an email."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "output_candidates": [
+        {
+          "assumption": "The email attribute of a User instance is always a string and never None when being processed for normalization.",
+          "category": "data",
+          "evidence": "src/users.py",
+          "risk": "The application will raise an AttributeError ('NoneType' object has no attribute 'lower') and crash when encountering a user without an email address."
+        },
+        {
+          "assumption": "An email address is a mandatory requirement for generating a user's display name string.",
+          "category": "business_rule",
+          "evidence": "src/users.py",
+          "risk": "Users who are registered without email addresses (which the class constructor allows) will cause failures in any part of the system that attempts to display their identity."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "output_checked": [
+        {
+          "assumption": "The email attribute of a User instance is always a string and never None when being processed for normalization.",
+          "category": "data",
+          "evidence": "src/users.py",
+          "risk": "The application will raise an AttributeError ('NoneType' object has no attribute 'lower') and crash when encountering a user without an email address.",
+          "status": "SUPPORTED",
+          "verification_note": "The normalize_email function directly calls string methods on the email attribute without any null checks, explicitly stating this assumption in its docstring."
+        },
+        {
+          "assumption": "An email address is a mandatory requirement for generating a user's display name string.",
+          "category": "business_rule",
+          "evidence": "src/users.py",
+          "risk": "Users who are registered without email addresses (which the class constructor allows) will cause failures in any part of the system that attempts to display their identity.",
+          "status": "SUPPORTED",
+          "verification_note": "The build_display_name function relies on normalize_email, which lacks null checks and explicitly states it assumes a non-null email address despite the User class allowing it to be None."
+        }
+      ]
+    }
+  }
+}

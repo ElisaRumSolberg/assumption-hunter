@@ -1,0 +1,16 @@
+{
+  "id": "case_006",
+  "name": "Config File Always Exists",
+  "description": "The settings file may be missing, but the code assumes it always exists.",
+  "project_path": "evaluation/cases/case_006_config_always_exists/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "The config file always exists at the given path.",
+      "category": "environment",
+      "severity": "medium",
+      "evidence_files": ["src/settings_loader.py"],
+      "expected_failure": "open() raises FileNotFoundError when the config file is missing."
+    }
+  ]
+}

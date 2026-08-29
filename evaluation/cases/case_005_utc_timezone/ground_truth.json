@@ -1,0 +1,16 @@
+{
+  "id": "case_005",
+  "name": "UTC Timezone Assumption",
+  "description": "Callers may pass naive datetimes, but the code assumes all datetimes are timezone-aware UTC.",
+  "project_path": "evaluation/cases/case_005_utc_timezone/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "Event timestamps are always timezone-aware UTC datetimes.",
+      "category": "time",
+      "severity": "medium",
+      "evidence_files": ["src/scheduler.py"],
+      "expected_failure": "Comparing a naive datetime to an aware datetime raises TypeError."
+    }
+  ]
+}

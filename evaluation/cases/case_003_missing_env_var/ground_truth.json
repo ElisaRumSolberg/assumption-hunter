@@ -1,0 +1,16 @@
+{
+  "id": "case_003",
+  "name": "Missing Environment Variable",
+  "description": "The DATABASE_URL environment variable may not be set, but the code assumes it always is.",
+  "project_path": "evaluation/cases/case_003_missing_env_var/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "The DATABASE_URL environment variable always exists.",
+      "category": "environment",
+      "severity": "high",
+      "evidence_files": ["src/config.py"],
+      "expected_failure": "os.environ['DATABASE_URL'] raises KeyError when unset."
+    }
+  ]
+}

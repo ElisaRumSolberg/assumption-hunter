@@ -1,0 +1,16 @@
+{
+  "id": "case_004",
+  "name": "API Always Returns JSON",
+  "description": "The external weather API can return a non-JSON error body, but the code assumes it always returns valid JSON.",
+  "project_path": "evaluation/cases/case_004_api_always_json/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "The external weather API always returns a valid JSON response.",
+      "category": "api",
+      "severity": "medium",
+      "evidence_files": ["src/weather_client.py"],
+      "expected_failure": "response.json() raises ValueError/JSONDecodeError on a non-JSON body."
+    }
+  ]
+}

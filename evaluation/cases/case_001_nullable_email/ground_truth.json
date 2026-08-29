@@ -1,0 +1,16 @@
+{
+  "id": "case_001",
+  "name": "Nullable Email",
+  "description": "User email may be missing, but the code assumes it always exists.",
+  "project_path": "evaluation/cases/case_001_nullable_email/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "Every user has a non-null email address.",
+      "category": "data",
+      "severity": "high",
+      "evidence_files": ["src/users.py"],
+      "expected_failure": "Calling .lower() on None raises AttributeError."
+    }
+  ]
+}
