@@ -32,9 +32,11 @@ def render_markdown(project_name: str, report: dict) -> str:
     lines.append("## Findings")
     lines.append("")
     for i, a in enumerate(assumptions, start=1):
-        lines.append(f"### {i}. {a.get('assumption', '(no assumption text)')}")
+        severity = a.get("severity", "medium")
+        lines.append(f"### {i}. [{severity.upper()}] {a.get('assumption', '(no assumption text)')}")
         lines.append("")
         lines.append(f"- **Category:** {a.get('category', 'unknown')}")
+        lines.append(f"- **Severity:** {severity}")
         lines.append(f"- **Evidence:** `{a.get('evidence', 'unknown')}`")
         lines.append(f"- **Risk:** {a.get('risk', 'unknown')}")
         lines.append("")

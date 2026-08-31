@@ -22,41 +22,44 @@ hard cuts.
   separate real detection from pattern-matching.
 - Show the rendered Markdown report (finished, readable — not raw JSON).
 
-## 2:00–3:00 — Comparison, and a metric bug worth admitting
+## 2:00–3:00 — Baseline vs. Advanced side by side, and the real failure mode
 
-- Show `results/baseline_results.json` vs `results/advanced_results.json`
-  for case_007: in the final run, both baseline and advanced correctly avoid
-  flagging the guarded email as a risk (0/1 trap rate on both).
-- Be honest on camera: an earlier version of the evaluation's own
-  false-positive metric had a bug — it matched on generic template words
-  ("user", "non-null", "address") instead of the trap's distinguishing word
-  ("email"), and briefly reported a false conclusion. Caught by reading the
-  raw model output, not by trusting the score. This is in `docs/CHANGELOG.md`
-  under its own heading — say so.
+- Run `python baseline/baseline.py evaluation/cases/case_007_false_positive_trap`
+  right after the advanced run above: baseline finds 1 clean finding
+  (`address`), advanced finds several more, evidence-backed but not equally
+  important. Say it plainly on camera: "The advanced pipeline finds the same
+  core assumption, plus more evidence-backed but lower-priority ones. Both
+  correctly avoid the guarded-email false positive. This revealed the real
+  bottleneck: not recall, it's prioritization."
+- Mention, briefly, the honesty story in `docs/CHANGELOG.md`: an earlier
+  version of the evaluation's own trap-detection metric had two separate
+  false-trigger bugs during this project (matching on generic template
+  words, then a coincidental "emails" mention in an unrelated sentence) —
+  caught both times by reading raw model output, not by trusting the score.
 
-## 3:00–4:00 — Evaluation results and changelog
+## 3:00–4:00 — Evaluation results and the changelog's closed loop
 
-- Show the comparison table from `docs/CHANGELOG.md`.
-- Walk through the changelog: recall tied at 100% for both systems (11/11).
-  The metric that actually moved: Advanced V1 reports 2.25x more
-  assumptions per case (4.5 avg) than baseline (2.0 avg) — the Evidence
-  Checker verifies claims are true of the file, not that they're worth a
-  developer's attention, so it rejects almost nothing.
+- Show the comparison table from `docs/CHANGELOG.md`: recall tied at 100%
+  across baseline/V1/V2 (11/11). Avg. findings per case: baseline 2.1 → V1
+  4.5 → **V2 3.5**.
+- Say what V2 actually is: "Instead of just writing down 'the Evidence
+  Checker doesn't discriminate on importance' as a limitation, I closed part
+  of that loop — added severity classification to the Evidence Checker,
+  filtered out low-severity findings, re-measured. 22% fewer findings per
+  case, zero recall lost."
 
 ## 4:00–4:40 — Main failure mode and hot take
 
-- Failure mode: the Evidence Checker behaves like a rubber stamp, not a
-  filter — it classified nearly every candidate SUPPORTED across the
-  inspected trajectories. Both systems also over-generate true-but-low-value
-  assumptions (Python version requirements, pytest being installed); Advanced
-  V1 does this more, not less, because its category-walk actively goes
-  looking in six directions per case.
+- Failure mode: V2 helps but doesn't fully close the gap — 3.5 is still
+  ~1.7x baseline's 2.1, so the severity filter is more conservative than a
+  human triager would be. That's the honest state of the project, not a
+  solved problem.
 - Hot take: "The bottleneck in agentic code analysis is not generating more
   findings — it's telling apart the ones that matter from the ones that are
   merely true. A single-prompt baseline already finds the important
-  assumption every time, with a lean report; more architecture without a
-  mechanism to reject true-but-unimportant findings just means more noise
-  to read."
+  assumption on simple code, every time. Adding a severity filter that acts
+  on a measured finding — not more architecture in an unmeasured direction —
+  closed a quarter of that noise gap in about 30 minutes."
 
 ## 4:40–5:00 — Close
 

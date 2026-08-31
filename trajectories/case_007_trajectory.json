@@ -1,97 +1,87 @@
 {
   "case": "case_007_false_positive_trap",
-  "note": "Hackathon-required challenging case: format_billing_email is already guarded against a missing email; format_shipping_label is not. A good system must tell them apart.",
   "baseline": {
-    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT). V2: now also assigns severity.",
     "final_output": {
       "assumptions": [
         {
-          "assumption": "Every user passed to format_shipping_label has a valid, non-null address object.",
-          "category": "Data Integrity",
+          "assumption": "Every User instance passed to format_shipping_label has a valid, non-null Address object.",
+          "category": "data",
           "evidence": "src/formatting.py",
-          "risk": "If a User object is initialized with address=None, calling format_shipping_label will raise an AttributeError because it attempts to access the .street property on a NoneType object."
+          "risk": "The User constructor explicitly allows address to be None. Accessing user.address.street without a null check will raise an AttributeError when a user has no address, causing a runtime crash.",
+          "severity": "medium"
         }
       ]
     }
   },
-  "advanced_v1": {
+  "advanced_v2": {
     "stage_1_context_and_assumption_analyzer": {
-      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py).",
       "output_candidates": [
         {
-          "assumption": "Every User object passed to format_shipping_label has a non-null address attribute.",
+          "assumption": "Every user object passed to the shipping label formatter has a complete, non-null shipping address.",
           "category": "data",
           "evidence": "src/formatting.py",
-          "risk": "Calling the function with a user whose address is None will trigger an AttributeError when accessing user.address.street."
+          "risk": "If a User is initialized with address=None, calling format_shipping_label will raise an AttributeError: 'NoneType' object has no attribute 'street'."
         },
         {
-          "assumption": "The execution environment uses a Python interpreter version 3.10 or higher.",
-          "category": "environment",
-          "evidence": "src/formatting.py",
-          "risk": "The use of the '|' pipe operator for union type hints will cause a SyntaxError on Python versions 3.9 and below."
-        },
-        {
-          "assumption": "The environment has the pytest library installed and accessible.",
-          "category": "api",
-          "evidence": "test_formatting.py",
-          "risk": "The test suite will fail to initialize with an ImportError if the pytest dependency is missing."
-        },
-        {
-          "assumption": "Address objects, when provided, are expected to have non-null values for both street and city attributes.",
+          "assumption": "A shipping label is considered valid and sufficient for delivery containing only the recipient's name, street, and city.",
           "category": "business_rule",
           "evidence": "src/formatting.py",
-          "risk": "If street or city are None, shipping labels will be generated with the word 'None', which is invalid for physical logistics."
+          "risk": "Labels may be rejected by logistics providers or postal services due to missing critical information such as postal codes, states, or countries."
         },
         {
-          "assumption": "The calling application is authorized to access and display Personally Identifiable Information (PII) including physical addresses.",
+          "assumption": "The runtime environment allows for manual modification of sys.path and maintains a specific relative directory structure for module resolution.",
+          "category": "environment",
+          "evidence": "test_formatting.py",
+          "risk": "The test suite will fail to execute with a ModuleNotFoundError if the project is run from a different directory or within a restricted environment that prevents path manipulation."
+        },
+        {
+          "assumption": "The application logic calling these functions has already performed the necessary authorization checks to access and display PII (Personally Identifiable Information).",
           "category": "auth",
           "evidence": "src/formatting.py",
-          "risk": "Sensitive user location data could be exposed to unauthorized logs or front-end components if the calling context does not enforce access controls."
+          "risk": "Sensitive user data like home addresses and email addresses could be leaked to unauthorized users or internal logs if formatting is triggered without prior access control validation."
         }
       ]
     },
     "stage_2_evidence_checker": {
-      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "agent_instructions": "Re-reads the cited evidence file, classifies status AND severity, drops low-severity findings (see src/assumption_hunter/agents/evidence_checker.py + workflow.py).",
       "output_checked_with_verdicts": [
         {
-          "assumption": "Every User object passed to format_shipping_label has a non-null address attribute.",
+          "assumption": "Every user object passed to the shipping label formatter has a complete, non-null shipping address.",
           "category": "data",
           "evidence": "src/formatting.py",
-          "risk": "Calling the function with a user whose address is None will trigger an AttributeError when accessing user.address.street.",
+          "risk": "If a User is initialized with address=None, calling format_shipping_label will raise an AttributeError: 'NoneType' object has no attribute 'street'.",
           "status": "SUPPORTED",
-          "verification_note": "The function format_shipping_label accesses attributes of user.address directly without any null checks or fallbacks, despite the User class allowing the address to be None."
+          "severity": "high",
+          "verification_note": "The format_shipping_label function directly accesses user.address.street without checking if address is None, which will cause a crash given the User class definition allows a null address."
         },
         {
-          "assumption": "The execution environment uses a Python interpreter version 3.10 or higher.",
-          "category": "environment",
-          "evidence": "src/formatting.py",
-          "risk": "The use of the '|' pipe operator for union type hints will cause a SyntaxError on Python versions 3.9 and below.",
-          "status": "SUPPORTED",
-          "verification_note": "The code uses the pipe operator (`|`) for type unions in the `User` class constructor, which requires Python 3.10 or higher to execute."
-        },
-        {
-          "assumption": "The environment has the pytest library installed and accessible.",
-          "category": "api",
-          "evidence": "test_formatting.py",
-          "risk": "The test suite will fail to initialize with an ImportError if the pytest dependency is missing.",
-          "status": "SUPPORTED",
-          "verification_note": "The file directly imports and uses the pytest library at the top level without any guards or fallback mechanisms."
-        },
-        {
-          "assumption": "Address objects, when provided, are expected to have non-null values for both street and city attributes.",
+          "assumption": "A shipping label is considered valid and sufficient for delivery containing only the recipient's name, street, and city.",
           "category": "business_rule",
           "evidence": "src/formatting.py",
-          "risk": "If street or city are None, shipping labels will be generated with the word 'None', which is invalid for physical logistics.",
+          "risk": "Labels may be rejected by logistics providers or postal services due to missing critical information such as postal codes, states, or countries.",
           "status": "SUPPORTED",
-          "verification_note": "The function format_shipping_label directly accesses both street and city attributes within an f-string without any null checks or fallback logic."
+          "severity": "medium",
+          "verification_note": "The format_shipping_label function implementation relies entirely on name, street, and city while lacking guards for a missing address object or additional required fields like ZIP codes."
         },
         {
-          "assumption": "The calling application is authorized to access and display Personally Identifiable Information (PII) including physical addresses.",
+          "assumption": "The runtime environment allows for manual modification of sys.path and maintains a specific relative directory structure for module resolution.",
+          "category": "environment",
+          "evidence": "test_formatting.py",
+          "risk": "The test suite will fail to execute with a ModuleNotFoundError if the project is run from a different directory or within a restricted environment that prevents path manipulation.",
+          "status": "SUPPORTED",
+          "severity": "low",
+          "verification_note": "The code explicitly modifies sys.path to resolve imports, relying on the environment allowing this mutation and maintaining a specific relative directory structure."
+        },
+        {
+          "assumption": "The application logic calling these functions has already performed the necessary authorization checks to access and display PII (Personally Identifiable Information).",
           "category": "auth",
           "evidence": "src/formatting.py",
-          "risk": "Sensitive user location data could be exposed to unauthorized logs or front-end components if the calling context does not enforce access controls.",
+          "risk": "Sensitive user data like home addresses and email addresses could be leaked to unauthorized users or internal logs if formatting is triggered without prior access control validation.",
           "status": "SUPPORTED",
-          "verification_note": "The `format_shipping_label` function processes and returns physical address PII without any authorization checks or redaction logic, relying on the assumption that the caller is permitted to access this data."
+          "severity": "high",
+          "verification_note": "The functions access and return sensitive PII (name, email, and address) without any internal authorization logic, demonstrating a reliance on the caller to have performed security checks."
         }
       ]
     }

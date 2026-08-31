@@ -12,13 +12,21 @@ from assumption_hunter.tools.file_reader import read_file
 
 EVIDENCE_CHECK_PROMPT = """You are the evidence-verification stage of an assumption-detection
 pipeline. You are given one candidate assumption and the full content of the file cited as
-its evidence. Decide whether the file content actually supports the claim.
+its evidence. Decide whether the file content actually supports the claim, and how much a
+working developer should actually care about it.
 
-Classify as exactly one of: SUPPORTED, PARTIALLY_SUPPORTED, UNVERIFIED, CONTRADICTED.
+Classify status as exactly one of: SUPPORTED, PARTIALLY_SUPPORTED, UNVERIFIED, CONTRADICTED.
 - SUPPORTED: the file clearly relies on this assumption with no guard/check for the opposite case.
 - PARTIALLY_SUPPORTED: related behavior exists but the assumption as stated is broader than what the file shows.
 - UNVERIFIED: the file doesn't contain enough to confirm or deny this specific claim.
 - CONTRADICTED: the file already guards against this case (e.g. a null check, try/except, or default value).
+
+Classify severity as exactly one of: high, medium, low.
+- high: breaks core functionality, causes data loss/corruption, or is a security/auth failure.
+- medium: a real bug in a realistic scenario, but recoverable or narrow in scope.
+- low: true but marginal — an environment/toolchain nicety (e.g. "pytest is installed",
+  "the interpreter is a specific version", "the network is reachable") that isn't the kind of
+  risk a developer would prioritize fixing over the SUPPORTED high/medium findings in this file.
 
 Candidate assumption: {assumption}
 Category: {category}
@@ -28,7 +36,7 @@ File content:
 {file_content}
 
 Return JSON only, in this exact schema:
-{{"status": "SUPPORTED|PARTIALLY_SUPPORTED|UNVERIFIED|CONTRADICTED", "note": "one sentence explaining the verdict"}}
+{{"status": "SUPPORTED|PARTIALLY_SUPPORTED|UNVERIFIED|CONTRADICTED", "severity": "high|medium|low", "note": "one sentence explaining the verdict"}}
 """
 
 
@@ -37,7 +45,12 @@ def check(project_path: str, candidate: dict) -> dict:
     try:
         file_content = read_file(project_path, evidence_path)
     except OSError:
-        return {**candidate, "status": "UNVERIFIED", "verification_note": f"Evidence file '{evidence_path}' not found in project."}
+        return {
+            **candidate,
+            "status": "UNVERIFIED",
+            "severity": "low",
+            "verification_note": f"Evidence file '{evidence_path}' not found in project.",
+        }
 
     prompt = EVIDENCE_CHECK_PROMPT.format(
         assumption=candidate.get("assumption", ""),
@@ -50,6 +63,7 @@ def check(project_path: str, candidate: dict) -> dict:
     return {
         **candidate,
         "status": result.get("status", "UNVERIFIED"),
+        "severity": result.get("severity", "medium"),
         "verification_note": result.get("note", ""),
     }
 

@@ -6,6 +6,7 @@ class Assumption(BaseModel):
     category: str
     evidence: str
     risk: str
+    severity: str = "medium"
 
 
 class AssumptionReport(BaseModel):

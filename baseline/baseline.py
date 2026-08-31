@@ -10,11 +10,13 @@ from assumption_hunter.tools.file_reader import load_project
 
 BASELINE_PROMPT = """Analyze this software project and identify hidden assumptions that
 could cause failures or bugs.
-For each assumption return: assumption, category, evidence, risk.
+For each assumption return: assumption, category, evidence, risk, and severity
+(high/medium/low, where low means a true-but-marginal environment/toolchain nicety
+rather than a real functional or security risk).
 Return JSON only, in this exact schema:
 {{
   "assumptions": [
-    {{"assumption": "string", "category": "string", "evidence": "string (file path)", "risk": "string"}}
+    {{"assumption": "string", "category": "string", "evidence": "string (file path)", "risk": "string", "severity": "high|medium|low"}}
   ]
 }}
 

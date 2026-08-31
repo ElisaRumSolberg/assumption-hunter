@@ -14,7 +14,8 @@ reviewing an unfamiliar codebase before it breaks in production.
 ## What's here
 
 - `baseline/baseline.py` — single-prompt baseline (no tools, no retry, no code execution)
-- `src/assumption_hunter/` — Advanced V1 pipeline: Context+Assumption Analyzer → Evidence Checker
+- `src/assumption_hunter/` — Advanced pipeline: Context+Assumption Analyzer → Evidence Checker
+  (V2 adds severity classification + low-severity filtering)
 - `evaluation/cases/case_001..010` — 10 minimal synthetic projects (11 ground-truth assumptions),
   including one with two independent assumptions in one file (`case_010`) and one deliberate
   false-positive trap where a lookalike function is already guarded (`case_007`). Every case has
@@ -42,38 +43,38 @@ evaluation commands.
 
 ## Result (see docs/CHANGELOG.md for the full story)
 
-| Metric | Baseline | Advanced V1 | Change |
+| Metric | Baseline | Advanced V1 | Advanced V2 |
 |---|---:|---:|---:|
-| Assumption Detection Rate (recall) | 100% (11/11) | 100% (11/11) | 0 |
-| False-positive trap rate | 0% (0/1) | 0% (0/1) | 0 |
-| Avg. assumptions reported per case | 2.0 | 4.5 | +2.25x |
+| Assumption Detection Rate (recall) | 100% (11/11) | 100% (11/11) | 100% (11/11) |
+| Avg. assumptions reported per case | 2.1 | 4.5 | 3.5 |
 
-Recall didn't move — both hit the ceiling on this dataset, and both
-correctly passed the false-positive trap case. What *did* move is the noise
-level: Advanced V1 reports 2.25x more assumptions per case than the
-baseline, because its Evidence Checker verifies that a claim is true of the
-cited file but has no mechanism to reject a claim that's true and
-unimportant. That's the project's hot take:
+Recall never moved — all three hit the ceiling on this dataset. What moved
+is the noise level: V1's Evidence Checker verified that a claim is true of
+the cited file but had no way to reject a claim that's true and
+unimportant, so it reported 2.25x more findings per case than baseline. V2
+acts on that measured finding directly — it also classifies severity and
+drops low-severity findings — and cut the average by 22% (4.5 → 3.5)
+without losing a single ground-truth hit. That's the project's hot take:
 
 > The bottleneck in agentic code analysis is not generating more findings —
 > it's telling apart the ones that matter from the ones that are merely
-> true. A category-driven miner plus an evidence-checking stage found the
-> same things a single-prompt baseline did, but reported more than twice as
-> many, because "supported by the file" is a much lower bar than "worth a
-> developer's attention."
+> true. A single-prompt baseline already finds the important assumption on
+> simple code, every time. Adding a severity filter that acts on a measured
+> finding — not more architecture in an unmeasured direction — closed a
+> quarter of the noise gap in about 30 minutes.
 
 ## Bottleneck / main failure mode
 
-The Evidence Checker classifies almost every candidate SUPPORTED or
-PARTIALLY_SUPPORTED and rejects almost nothing (see
-`trajectories/case_001_trajectory.json` and
-`trajectories/case_007_trajectory.json`) — it behaves like a rubric stamp,
-not a filter. Both systems also over-generate true-but-often-irrelevant
-assumptions alongside the real risk (e.g. "pytest is installed", "the
-environment has network connectivity"); Advanced V1 does this *more*, not
-less, because its category-walk actively goes looking in six directions per
-case. Ranking or suppressing low-value-but-true findings is the next thing
-worth building, not more recall.
+V1's Evidence Checker classified almost every candidate SUPPORTED or
+PARTIALLY_SUPPORTED and rejected almost nothing — it behaved like a rubber
+stamp, not a filter. V2's severity classification closes part of this (V1
+4.5 → V2 3.5 avg/case) but not all of it: 3.5 is still ~1.7x baseline's 2.1,
+so the Evidence Checker's severity judgment is more conservative than a
+human triager would likely be. Both systems also still surface some
+true-but-marginal assumptions alongside the real risk (e.g. "pytest is
+installed", "the interpreter is a specific version") — ranking these out
+entirely, rather than just filtering "low," is the next thing worth
+building, not more recall.
 
 The project also surfaced a methodology bug worth naming: an early version
 of the evaluation script's own trap-detection metric had a false-positive

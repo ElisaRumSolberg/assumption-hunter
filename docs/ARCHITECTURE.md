@@ -11,14 +11,18 @@ Context + Assumption Analyzer   (src/assumption_hunter/agents/context_analyzer.p
     v
 Evidence Checker                (src/assumption_hunter/agents/evidence_checker.py)
     |  re-reads the cited file from disk, classifies SUPPORTED/PARTIALLY_SUPPORTED/
-    |  UNVERIFIED/CONTRADICTED, drops the last two
+    |  UNVERIFIED/CONTRADICTED AND severity (high/medium/low, V2)
+    |  drops UNVERIFIED/CONTRADICTED, then drops low severity (V2)
     v
-Structured Report               ({"assumptions": [{assumption, category, evidence, risk}]})
+Structured Report      ({"assumptions": [{assumption, category, evidence, risk, severity}]})
 ```
 
 `src/assumption_hunter/workflow.py` wires these two stages together as
 `analyze_project(project_path)`, returning the same JSON schema the baseline
-returns, so `evaluation/evaluate.py` can score both with one script.
+returns, so `evaluation/evaluate.py` can score both with one script. V1 kept
+every SUPPORTED/PARTIALLY_SUPPORTED candidate; V2 adds the severity filter
+on top, after measuring that V1 over-reported true-but-low-value findings
+(see `docs/CHANGELOG.md`).
 
 The baseline (`baseline/baseline.py`) is intentionally a single prompt over
 the same file-reading tool (`tools/file_reader.py`) with no tool calls, no
@@ -78,11 +82,8 @@ what got measured within the time budget.
   target architecture; not split out because the merged V1 call already
   reaches ceiling recall on the current evaluation set, so there was nothing
   measured that the split would have fixed.
-- **Importance/severity-aware filtering in the Evidence Checker.** The
-  measured result (see CHANGELOG) is that the Evidence Checker verifies a
-  claim is *true* of the cited file but has no mechanism to reject a claim
-  that's true and unimportant — this is why Advanced V1 reports 2.25x more
-  assumptions per case than baseline instead of fewer, cleaner ones. Not
-  implemented in this pass; the natural next step is to have the Evidence
-  Checker (or a new stage after it) also score/rank by how much a developer
-  should actually care, not only whether the file supports the claim.
+- ~~Importance/severity-aware filtering in the Evidence Checker.~~
+  **Implemented as V2** (see `docs/CHANGELOG.md`): cut avg. findings/case
+  from 4.5 to 3.5 (−22%) with no recall loss. Not fully closed — V2 is still
+  ~1.7x baseline's average, so a finer-grained ranking (rather than a
+  3-bucket severity filter) is still worth trying with more time.

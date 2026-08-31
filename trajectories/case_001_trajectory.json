@@ -1,51 +1,72 @@
 {
   "case": "case_001_nullable_email",
   "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT). V2: now also assigns severity.",
     "final_output": {
       "assumptions": [
         {
-          "assumption": "Every User object passed to normalize_email has a non-null email address.",
+          "assumption": "Every User instance has a non-null email address.",
           "category": "data",
           "evidence": "src/users.py",
-          "risk": "Calling .lower() or .strip() on a NoneType object will raise an AttributeError, causing the application to crash when processing users who were initialized without an email."
+          "risk": "The normalize_email function calls .lower() and .strip() directly on the email attribute. If the email is None, the application will raise an AttributeError, causing the process to crash when normalizing emails or building display names.",
+          "severity": "high"
         }
       ]
     }
   },
-  "advanced_v1": {
+  "advanced_v2": {
     "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py).",
       "output_candidates": [
         {
-          "assumption": "The email attribute of a User instance is always a string and never None when being processed for normalization.",
+          "assumption": "Every User object processed by the system has a non-null email address.",
           "category": "data",
           "evidence": "src/users.py",
-          "risk": "The application will raise an AttributeError ('NoneType' object has no attribute 'lower') and crash when encountering a user without an email address."
+          "risk": "Calling .lower() or .strip() on a None value will raise an AttributeError, crashing the process."
         },
         {
-          "assumption": "An email address is a mandatory requirement for generating a user's display name string.",
+          "assumption": "The execution environment is running Python 3.10 or higher.",
+          "category": "environment",
+          "evidence": "src/users.py",
+          "risk": "The use of the '|' pipe operator for type unions will cause a SyntaxError on Python versions earlier than 3.10."
+        },
+        {
+          "assumption": "A user's identity is valid only if it can be represented with an email address in the display name.",
           "category": "business_rule",
           "evidence": "src/users.py",
-          "risk": "Users who are registered without email addresses (which the class constructor allows) will cause failures in any part of the system that attempts to display their identity."
+          "risk": "The application cannot generate a display name for users without emails, even though the constructor allows email to be None."
         }
       ]
     },
     "stage_2_evidence_checker": {
-      "output_checked": [
+      "agent_instructions": "Re-reads the cited evidence file, classifies status AND severity, drops low-severity findings (see src/assumption_hunter/agents/evidence_checker.py + workflow.py).",
+      "output_checked_with_verdicts": [
         {
-          "assumption": "The email attribute of a User instance is always a string and never None when being processed for normalization.",
+          "assumption": "Every User object processed by the system has a non-null email address.",
           "category": "data",
           "evidence": "src/users.py",
-          "risk": "The application will raise an AttributeError ('NoneType' object has no attribute 'lower') and crash when encountering a user without an email address.",
+          "risk": "Calling .lower() or .strip() on a None value will raise an AttributeError, crashing the process.",
           "status": "SUPPORTED",
-          "verification_note": "The normalize_email function directly calls string methods on the email attribute without any null checks, explicitly stating this assumption in its docstring."
+          "severity": "medium",
+          "verification_note": "The normalize_email function directly calls .lower() on user.email without a null check, despite the User constructor explicitly allowing email to be None."
         },
         {
-          "assumption": "An email address is a mandatory requirement for generating a user's display name string.",
+          "assumption": "The execution environment is running Python 3.10 or higher.",
+          "category": "environment",
+          "evidence": "src/users.py",
+          "risk": "The use of the '|' pipe operator for type unions will cause a SyntaxError on Python versions earlier than 3.10.",
+          "status": "SUPPORTED",
+          "severity": "low",
+          "verification_note": "The code uses the PEP 604 union type hint syntax (str | None), which was introduced in Python 3.10 and will cause a TypeError on older versions."
+        },
+        {
+          "assumption": "A user's identity is valid only if it can be represented with an email address in the display name.",
           "category": "business_rule",
           "evidence": "src/users.py",
-          "risk": "Users who are registered without email addresses (which the class constructor allows) will cause failures in any part of the system that attempts to display their identity.",
+          "risk": "The application cannot generate a display name for users without emails, even though the constructor allows email to be None.",
           "status": "SUPPORTED",
-          "verification_note": "The build_display_name function relies on normalize_email, which lacks null checks and explicitly states it assumes a non-null email address despite the User class allowing it to be None."
+          "severity": "high",
+          "verification_note": "The code will raise an AttributeError if a user has no email address, despite the constructor allowing it, making the email effectively required for core functionality like generating a display name."
         }
       ]
     }
