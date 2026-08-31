@@ -1,0 +1,24 @@
+{
+  "id": "case_010",
+  "name": "Multiple Interacting Assumptions",
+  "description": "One function makes two independent hidden assumptions (environment variable presence, timezone-aware datetime) that can each fail separately.",
+  "project_path": "evaluation/cases/case_010_multiple_interacting_assumptions/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "The REPORT_TIMEZONE environment variable is always set.",
+      "category": "environment",
+      "severity": "medium",
+      "evidence_files": ["src/report_scheduler.py"],
+      "expected_failure": "os.environ['REPORT_TIMEZONE'] raises KeyError when unset."
+    },
+    {
+      "id": "A2",
+      "assumption": "run_at is always a timezone-aware UTC datetime.",
+      "category": "time",
+      "severity": "medium",
+      "evidence_files": ["src/report_scheduler.py"],
+      "expected_failure": "Comparing a naive run_at to an aware datetime raises TypeError."
+    }
+  ]
+}

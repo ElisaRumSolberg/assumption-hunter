@@ -1,0 +1,16 @@
+{
+  "id": "case_008",
+  "name": "Caller Always Authenticated",
+  "description": "delete_document assumes every caller is authenticated/authorized and performs no check, so it silently allows deletion by anyone.",
+  "project_path": "evaluation/cases/case_008_unauthenticated_delete/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "The caller of delete_document is always authenticated and authorized to delete the document.",
+      "category": "auth",
+      "severity": "high",
+      "evidence_files": ["src/documents.py"],
+      "expected_failure": "An anonymous request deletes the document with no auth check, a silent security failure."
+    }
+  ]
+}

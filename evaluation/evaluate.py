@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from evaluation.metrics import compute_recall
+from evaluation.metrics import compute_false_positives, compute_recall
 
 CASES_DIR = REPO_ROOT / "evaluation" / "cases"
 RESULTS_DIR = REPO_ROOT / "results"
@@ -46,6 +46,8 @@ def run(system: str) -> dict:
     case_results = []
     total_detected = 0
     total_ground_truth = 0
+    total_traps_triggered = 0
+    total_traps = 0
 
     for case in load_cases():
         project_path = str(REPO_ROOT / case["project_path"])
@@ -62,6 +64,11 @@ def run(system: str) -> dict:
         total_detected += detected
         total_ground_truth += total
 
+        trap_items = case.get("trap_assumptions", [])
+        triggered, trap_total, triggered_ids = compute_false_positives(trap_items, report.get("assumptions", []))
+        total_traps_triggered += triggered
+        total_traps += trap_total
+
         case_results.append(
             {
                 "id": case["id"],
@@ -70,20 +77,28 @@ def run(system: str) -> dict:
                 "total": total,
                 "detected_ids": detected_ids,
                 "recall": detected / total if total else 0.0,
+                "traps_triggered": triggered,
+                "traps_total": trap_total,
+                "triggered_trap_ids": triggered_ids,
                 "elapsed_seconds": round(elapsed, 2),
                 "raw_assumptions": report.get("assumptions", []),
                 "error": error,
             }
         )
         status = f"{detected}/{total}" if error is None else f"ERROR: {error}"
-        print(f"  {case['id']} ({case['name']}): {status}")
+        trap_note = f", traps triggered: {triggered}/{trap_total}" if trap_total else ""
+        print(f"  {case['id']} ({case['name']}): {status}{trap_note}")
 
     overall_recall = total_detected / total_ground_truth if total_ground_truth else 0.0
+    overall_trap_rate = total_traps_triggered / total_traps if total_traps else 0.0
     result = {
         "system": system,
         "overall_detected": total_detected,
         "overall_total": total_ground_truth,
         "overall_recall": overall_recall,
+        "overall_traps_triggered": total_traps_triggered,
+        "overall_traps_total": total_traps,
+        "overall_false_positive_rate": overall_trap_rate,
         "cases": case_results,
     }
 
@@ -92,6 +107,8 @@ def run(system: str) -> dict:
     out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print(f"\n{system} overall recall: {total_detected}/{total_ground_truth} = {overall_recall:.1%}")
+    if total_traps:
+        print(f"{system} false-positive (trap) rate: {total_traps_triggered}/{total_traps} = {overall_trap_rate:.1%}")
     print(f"Saved to {out_path}")
     return result
 

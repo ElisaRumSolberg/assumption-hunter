@@ -1,0 +1,25 @@
+{
+  "id": "case_007",
+  "name": "False-Positive Trap (Guarded Assumption)",
+  "description": "One function already guards against a missing value (not a bug); a lookalike function next to it does not (a real bug). Tests whether the system distinguishes evidence-backed risk from surface pattern-matching.",
+  "project_path": "evaluation/cases/case_007_false_positive_trap/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "Every user has a complete shipping address.",
+      "category": "data",
+      "severity": "medium",
+      "evidence_files": ["src/formatting.py"],
+      "expected_failure": "user.address being None raises AttributeError in format_shipping_label."
+    }
+  ],
+  "trap_assumptions": [
+    {
+      "id": "T1",
+      "description": "Every user has a non-null email address.",
+      "required_keywords": ["email"],
+      "required_any_of_keywords": ["null", "none", "missing", "empty", "optional", "nullable"],
+      "why_not_a_bug": "format_billing_email checks 'if not user.email' and returns a safe fallback string — the missing-email case is already handled, so this is not an unverified assumption."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "case_009",
+  "name": "Username Uniqueness",
+  "description": "UserRegistry.register assumes usernames are always unique and silently overwrites an existing account instead of rejecting the duplicate.",
+  "project_path": "evaluation/cases/case_009_username_uniqueness/",
+  "ground_truth": [
+    {
+      "id": "A1",
+      "assumption": "Usernames passed to register are always unique.",
+      "category": "business_rule",
+      "severity": "high",
+      "evidence_files": ["src/registry.py"],
+      "expected_failure": "Registering a duplicate username silently overwrites the existing account with no conflict error."
+    }
+  ]
+}

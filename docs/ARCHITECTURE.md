@@ -78,3 +78,11 @@ what got measured within the time budget.
   target architecture; not split out because the merged V1 call already
   reaches ceiling recall on the current evaluation set, so there was nothing
   measured that the split would have fixed.
+- **Importance/severity-aware filtering in the Evidence Checker.** The
+  measured result (see CHANGELOG) is that the Evidence Checker verifies a
+  claim is *true* of the cited file but has no mechanism to reject a claim
+  that's true and unimportant — this is why Advanced V1 reports 2.25x more
+  assumptions per case than baseline instead of fewer, cleaner ones. Not
+  implemented in this pass; the natural next step is to have the Evidence
+  Checker (or a new stage after it) also score/rank by how much a developer
+  should actually care, not only whether the file supports the claim.

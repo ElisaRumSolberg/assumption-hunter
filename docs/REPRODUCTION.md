@@ -56,11 +56,15 @@ python -m pytest -q
 Each case's `test_*.py` uses `pytest.raises(...)` to prove the counterexample
 in its `ground_truth.json` actually reproduces the stated failure.
 
-## Approximate runtime and cost (measured 2026-08-30)
+## Approximate runtime and cost (measured 2026-08-31)
 
-- Baseline, 6 cases: ~6 model calls, under 1 minute total, single-digit cents
-  at `gemini-3-flash-preview` pricing.
-- Advanced V1, 6 cases: ~12 model calls (1 mining call + up to ~4-6 evidence
-  checks per case), a few minutes total (network-bound; one run hit a
-  transient DNS/connection error mid-batch and needed a retry), still
-  single-digit cents.
+- Baseline, 10 cases: ~10 model calls, under 2 minutes total, single-digit
+  cents at `gemini-3-flash-preview` pricing.
+- Advanced V1, 10 cases: ~50 model calls (1 mining call + ~2-6 evidence
+  checks per case), several minutes total, still well under a dollar.
+
+The Vertex AI connection in this environment drops mid-request occasionally
+(`RemoteProtocolError`, DNS resolution failures) unrelated to prompt content.
+`src/assumption_hunter/llm_client.py` retries each call up to 5 times with
+backoff; a full 10-case advanced run typically needs 0-2 retries to complete
+cleanly.

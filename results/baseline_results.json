@@ -1,0 +1,300 @@
+{
+  "system": "baseline",
+  "overall_detected": 10,
+  "overall_total": 11,
+  "overall_recall": 0.9090909090909091,
+  "overall_traps_triggered": 0,
+  "overall_traps_total": 1,
+  "overall_false_positive_rate": 0.0,
+  "cases": [
+    {
+      "id": "case_001",
+      "name": "Nullable Email",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 13.43,
+      "raw_assumptions": [
+        {
+          "assumption": "Every User object passed to processing functions will have a non-null email address.",
+          "category": "Data Integrity",
+          "evidence": "src/users.py",
+          "risk": "Calling .lower() or .strip() on a NoneType value will raise an AttributeError, causing the application to crash when processing users who registered without an email."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_002",
+      "name": "Empty Search Results",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 11.89,
+      "raw_assumptions": [
+        {
+          "assumption": "Search results are never empty.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "Indexing results[0] on an empty list raises IndexError when a query matches no products."
+        },
+        {
+          "assumption": "Each item in the catalog is a dictionary containing a 'name' key.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "Accessing item['name'] will raise a KeyError if a catalog item is missing the 'name' key."
+        },
+        {
+          "assumption": "The value associated with the 'name' key in catalog items is always a string.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "Calling .lower() on a non-string value, such as None or an integer, will raise an AttributeError."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_003",
+      "name": "Missing Environment Variable",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 13.76,
+      "raw_assumptions": [
+        {
+          "assumption": "The 'DATABASE_URL' environment variable is always defined in the host environment.",
+          "category": "Environment",
+          "evidence": "src/config.py",
+          "risk": "Direct access via os.environ['DATABASE_URL'] will raise a KeyError and cause the application to crash if the variable is missing."
+        },
+        {
+          "assumption": "A hardcoded connection pool size of 5 is appropriate for all environments and loads.",
+          "category": "Scalability",
+          "evidence": "src/config.py",
+          "risk": "Fixed pool sizes can lead to connection bottlenecks in high-traffic environments or resource exhaustion in constrained environments."
+        },
+        {
+          "assumption": "The value stored in 'DATABASE_URL' is a valid, well-formed connection string.",
+          "category": "Data Validation",
+          "evidence": "src/config.py",
+          "risk": "The code does not validate the format of the string; malformed input will cause downstream connection failures that may be harder to debug."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_004",
+      "name": "API Always Returns JSON",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 6.53,
+      "raw_assumptions": [
+        {
+          "assumption": "The external weather API always returns a valid JSON response.",
+          "category": "API",
+          "evidence": "src/weather_client.py",
+          "risk": "If the API returns a non-JSON response, such as an HTML error page (e.g., 503 Service Unavailable) or plain text, the call to response.json() will raise a ValueError or JSONDecodeError, leading to an unhandled exception and application failure."
+        },
+        {
+          "assumption": "The HTTP request to the weather API will always be successful (status code 200).",
+          "category": "Network",
+          "evidence": "src/weather_client.py",
+          "risk": "The code does not check the response status code before attempting to parse the body. Error responses (4xx or 5xx) might not contain the expected JSON structure or might contain error messages that the calling code is not prepared to handle."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_005",
+      "name": "UTC Timezone Assumption",
+      "detected": 0,
+      "total": 1,
+      "detected_ids": [],
+      "recall": 0.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 11.37,
+      "raw_assumptions": [
+        {
+          "assumption": "The event_time parameter is always a timezone-aware datetime object.",
+          "category": "Time",
+          "evidence": "src/scheduler.py",
+          "risk": "If a naive datetime (a datetime object without timezone information) is passed, the function will raise a TypeError when attempting to compare it to the timezone-aware 'now' variable."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_006",
+      "name": "Config File Always Exists",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 13.42,
+      "raw_assumptions": [
+        {
+          "assumption": "The configuration file at the specified path always exists.",
+          "category": "Environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will crash with a FileNotFoundError if the file is missing, which is common in fresh installs or misconfigured environments."
+        },
+        {
+          "assumption": "The file content is valid JSON.",
+          "category": "Data Integrity",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a json.JSONDecodeError if the file is empty or corrupted, leading to a startup failure."
+        },
+        {
+          "assumption": "The application has the necessary file system permissions to read the file.",
+          "category": "Security/Environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will fail with a PermissionError if the user running the process lacks read access to the file or its parent directories."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_007",
+      "name": "False-Positive Trap (Guarded Assumption)",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 1,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 6.92,
+      "raw_assumptions": [
+        {
+          "assumption": "Every User instance passed to format_shipping_label will have a non-null address attribute.",
+          "category": "Data Validation",
+          "evidence": "src/formatting.py",
+          "risk": "If user.address is None, the function will raise an AttributeError when attempting to access user.address.street or user.address.city, causing the application to crash during label generation."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_008",
+      "name": "Caller Always Authenticated",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 15.23,
+      "raw_assumptions": [
+        {
+          "assumption": "The caller of delete_document is always authenticated and authorized to perform the deletion.",
+          "category": "Security",
+          "evidence": "src/documents.py",
+          "risk": "Unauthorized or anonymous users can delete documents, leading to data loss and a silent security failure."
+        },
+        {
+          "assumption": "The document_id provided to the delete method always exists in the document store.",
+          "category": "Error Handling",
+          "evidence": "src/documents.py",
+          "risk": "If a non-existent document_id is provided, the application will raise a KeyError, causing an unhandled exception and potentially crashing the request."
+        },
+        {
+          "assumption": "The request object passed to delete_document contains all necessary context, even though it is not accessed.",
+          "category": "Logic",
+          "evidence": "src/documents.py",
+          "risk": "Future changes to the function that attempt to access attributes on the request object may fail if the caller passes an incompatible object (like None or a simple mock)."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_009",
+      "name": "Username Uniqueness",
+      "detected": 1,
+      "total": 1,
+      "detected_ids": [
+        "A1"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 8.09,
+      "raw_assumptions": [
+        {
+          "assumption": "Usernames passed to the register method are always unique and have not been previously registered.",
+          "category": "business_rule",
+          "evidence": "src/registry.py",
+          "risk": "Registering an existing username will silently overwrite the current account's data (e.g., email), enabling account takeovers and causing data loss for the original user."
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "case_010",
+      "name": "Multiple Interacting Assumptions",
+      "detected": 2,
+      "total": 2,
+      "detected_ids": [
+        "A1",
+        "A2"
+      ],
+      "recall": 1.0,
+      "traps_triggered": 0,
+      "traps_total": 0,
+      "triggered_trap_ids": [],
+      "elapsed_seconds": 6.25,
+      "raw_assumptions": [
+        {
+          "assumption": "The 'REPORT_TIMEZONE' environment variable is always defined in the system environment.",
+          "category": "environment",
+          "evidence": "src/report_scheduler.py",
+          "risk": "If the environment variable is missing, accessing os.environ['REPORT_TIMEZONE'] will raise a KeyError, causing the program to crash."
+        },
+        {
+          "assumption": "the 'run_at' datetime input is always timezone-aware.",
+          "category": "time",
+          "evidence": "src/report_scheduler.py",
+          "risk": "Python does not allow comparisons between naive and aware datetime objects. If a naive datetime is passed, the comparison 'run_at < now' will raise a TypeError."
+        }
+      ],
+      "error": null
+    }
+  ]
+}
