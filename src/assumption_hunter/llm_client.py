@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import time
@@ -7,6 +8,11 @@ from dotenv import load_dotenv
 from google import genai
 
 load_dotenv()
+
+# Silences google-genai's "Direct use of AFC in generate_content is not
+# recommended" notice: harmless here since we never pass tools, but it's
+# noisy in a terminal recording.
+logging.getLogger("google_genai.models").setLevel(logging.ERROR)
 
 _client: genai.Client | None = None
 
