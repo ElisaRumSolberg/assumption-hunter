@@ -1,70 +1,135 @@
-# Solution Video Script (≤ 5 minutes)
+# Solution Video — Voiceover Script (B1 English)
 
-Structure follows the hackathon's required beats. Timings are guidance, not
-hard cuts.
+Target length: about 4–5 minutes (hard limit: 5 minutes). Simple B1 English,
+spoken by the author. Screen shown alongside each section: `README.md` →
+baseline command → advanced command → `docs/CHANGELOG.md` →
+`docs/ARCHITECTURE.md` → GitHub repo.
 
-## 0:00–0:30 — Problem and simple baseline
+## 0:00–0:30 — Opening / Problem
 
-- "Software fails less often from syntax errors than from assumptions no one
-  checked — every user has an email, an API always returns JSON, a config
-  file always exists."
-- Show `README.md`: target user (junior devs, engineers inheriting a legacy
-  repo), the bottleneck (nobody has a systematic way to surface these before
-  production).
-- Show the baseline: one prompt, no tools, no retry (`baseline/baseline.py`).
+Hi, I'm Elisa, and this is Assumption Hunter.
 
-## 0:30–2:00 — End-to-end run
+Software can look correct and still fail because it uses hidden
+assumptions.
 
-- Run: `PYTHONPATH=src python -m assumption_hunter.cli evaluation/cases/case_007_false_positive_trap --format markdown`
-- Narrate case_007 while it runs: one function already guards a missing
-  email (`format_billing_email`), a lookalike function doesn't
-  (`format_shipping_label`) — this is the hard case built specifically to
-  separate real detection from pattern-matching.
-- Show the rendered Markdown report (finished, readable — not raw JSON).
+For example, a program may assume that every user has an email address,
+that an API always returns JSON, or that a config file always exists.
 
-## 2:00–3:00 — Baseline vs. Advanced side by side, and the real failure mode
+These assumptions can stay hidden until a special case happens.
 
-- Run `python baseline/baseline.py evaluation/cases/case_007_false_positive_trap`
-  right after the advanced run above: baseline finds 1 clean finding
-  (`address`), advanced finds several more, evidence-backed but not equally
-  important. Say it plainly on camera: "The advanced pipeline finds the same
-  core assumption, plus more evidence-backed but lower-priority ones. Both
-  correctly avoid the guarded-email false positive. This revealed the real
-  bottleneck: not recall, it's prioritization."
-- Mention, briefly, the honesty story in `docs/CHANGELOG.md`: an earlier
-  version of the evaluation's own trap-detection metric had two separate
-  false-trigger bugs during this project (matching on generic template
-  words, then a coincidental "emails" mention in an unrelated sentence) —
-  caught both times by reading raw model output, not by trusting the score.
+Assumption Hunter helps find these hidden assumptions before they become
+real bugs.
 
-## 3:00–4:00 — Evaluation results and the changelog's closed loop
+## 0:30–0:55 — What the system does
 
-- Show the comparison table from `docs/CHANGELOG.md`: recall tied at 100%
-  across baseline/V1/V2 (11/11). Avg. findings per case: baseline 2.1 → V1
-  4.5 → **V2 3.5**.
-- Say what V2 actually is: "Instead of just writing down 'the Evidence
-  Checker doesn't discriminate on importance' as a limitation, I closed part
-  of that loop — added severity classification to the Evidence Checker,
-  filtered out low-severity findings, re-measured. 22% fewer findings per
-  case, zero recall lost."
+The system reads a software project and looks for assumptions that may
+cause bugs or reliability problems.
 
-## 4:00–4:40 — Main failure mode and hot take
+For every finding, it shows the assumption, the category, the file with
+the evidence, and the possible risk.
 
-- Failure mode: V2 helps but doesn't fully close the gap — 3.5 is still
-  ~1.7x baseline's 2.1, so the severity filter is more conservative than a
-  human triager would be. That's the honest state of the project, not a
-  solved problem.
-- Hot take: "The bottleneck in agentic code analysis is not generating more
-  findings — it's telling apart the ones that matter from the ones that are
-  merely true. A single-prompt baseline already finds the important
-  assumption on simple code, every time. Adding a severity filter that acts
-  on a measured finding — not more architecture in an unmeasured direction —
-  closed a quarter of that noise gap in about 30 minutes."
+The goal is not only to find more things. The goal is to find useful
+problems and connect them to clear evidence.
 
-## 4:40–5:00 — Close
+## 0:55–1:25 — Baseline
 
-- One experiment removed: multi-agent debate over borderline evidence
-  classifications — discussed, never built, noted honestly in
-  `docs/ARCHITECTURE.md` as "considered but not implemented," not listed as
-  a removed experiment in the changelog.
-- Point to the repo: https://github.com/ElisaRumSolberg/assumption-hunter
+I started with a simple baseline. The baseline uses one direct prompt. It
+does not use tools, retries, or verification.
+
+I run it on the same evaluation case as the advanced version:
+
+```bash
+python baseline/baseline.py evaluation/cases/case_007_false_positive_trap
+```
+
+In this example, the baseline finds the main problem: the code assumes
+that every user has an address. This gives me a simple and fair starting
+point.
+
+## 1:25–2:10 — Advanced V1
+
+Now I run the advanced version on the same case:
+
+```bash
+python -m assumption_hunter.cli evaluation/cases/case_007_false_positive_trap --format markdown
+```
+
+The advanced workflow first analyzes the project and looks for hidden
+assumptions. Then the Evidence Checker checks if the findings are really
+supported by the project files.
+
+The advanced version finds the same main address assumption. It also finds
+more assumptions than the baseline. Some of these findings are correct,
+but they are less important for the developer.
+
+## 2:10–2:45 — What I learned and improved
+
+At first, I thought the main problem would be recall, so I expected the
+advanced version to find more hidden assumptions.
+
+But the tests showed a different problem. The system could already find
+the important assumptions, but it could not tell which findings mattered
+most.
+
+So I added a severity level to the Evidence Checker and filtered out
+low-severity findings. After I tested the same ten cases again, the
+average number of findings per case went down from 4.5 to 3.5. That is
+about a 22 percent reduction, with no loss in detection rate.
+
+## 2:45–3:10 — Difficult Case
+
+This case was made as a false-positive trap. It has two similar patterns.
+The email case is protected, but the address case is not protected. Both
+the baseline and the advanced version avoid reporting the protected email
+case as a problem. This shows that the system is not only matching simple
+patterns.
+
+## 3:10–3:30 — Tests / Reproducibility
+
+The evaluation projects also have executable tests:
+
+```bash
+pytest
+```
+
+When I run the test suite, all twelve tests pass. This helps prove that
+the evaluation cases work and that another person can run the project
+again from a clean environment.
+
+## 3:30–4:00 — Changelog / Iteration Story
+
+Show `docs/CHANGELOG.md`.
+
+I wrote every important step in the Improvement Changelog. I started with
+the single-prompt baseline. Then I added structured project analysis.
+After that, I added evidence checking. Later, the test results showed that
+prioritization was the next problem, so I added severity filtering. I used
+the measurements to decide what to build next.
+
+## 4:00–4:25 — Architecture / Scope
+
+Show `docs/ARCHITECTURE.md`.
+
+The current system is still simple on purpose. It has a Context and
+Assumption Analyzer, then an Evidence Checker with severity filtering, and
+then a structured report. I also thought about adding executable
+verification and a counterexample generator. I did not add them because
+the data showed that prioritization was more important, so I fixed that
+first.
+
+## 4:25–4:50 — Tools Used / Closing
+
+I used Claude Code during this project for parts of the coding work,
+including the evidence-checking pipeline and evaluation harness. I also
+used ChatGPT for project planning, idea development, reviewing the
+hackathon requirements, improving the evaluation plan, and preparing the
+video and documentation.
+
+My main lesson is this: the hardest part is not always finding more
+problems. It is deciding which findings are really important for the
+developer.
+
+The full code and changelog are on GitHub:
+https://github.com/ElisaRumSolberg/assumption-hunter
+
+Thank you.
