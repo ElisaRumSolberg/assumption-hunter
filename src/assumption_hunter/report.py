@@ -1,7 +1,13 @@
-"""Renders an AssumptionReport dict as a readable Markdown report — the
-finished, sign-off-able output a developer actually reads, instead of raw
-JSON.
+"""Renders an AssumptionReport dict as a readable report — the finished,
+sign-off-able output a developer actually reads, instead of raw JSON.
+
+Two renderers: `render_markdown` (plain .md text, for files/GitHub) and
+`render_pretty` (an actual aligned table drawn in the terminal via `rich` —
+raw markdown pipes/dashes are source syntax, not a rendered table, so they
+look misaligned when printed straight to a terminal).
 """
+
+_SEVERITY_STYLE = {"high": "bold red", "medium": "yellow", "low": "dim"}
 
 
 def render_markdown(project_name: str, report: dict) -> str:
@@ -42,3 +48,41 @@ def render_markdown(project_name: str, report: dict) -> str:
         lines.append("")
 
     return "\n".join(lines)
+
+
+def render_pretty(project_name: str, report: dict) -> None:
+    """Prints an aligned, colored table straight to the terminal via `rich`."""
+    from rich.console import Console
+    from rich.table import Table
+
+    console = Console()
+    assumptions = report.get("assumptions", [])
+
+    console.print(f"\n[bold]Assumption Hunter Report[/bold] — {project_name}")
+    console.print(f"Found [bold]{len(assumptions)}[/bold] hidden assumption(s) that could cause failures or bugs.\n")
+
+    if not assumptions:
+        console.print("No unverified assumptions were found in this project.")
+        return
+
+    table = Table(show_lines=True, expand=True)
+    table.add_column("#", justify="right", style="dim", width=2, no_wrap=True)
+    table.add_column("Sev", width=6, no_wrap=True)
+    table.add_column("Category", width=14, no_wrap=True)
+    table.add_column("Evidence", width=18, no_wrap=True, overflow="fold")
+    table.add_column("Assumption", ratio=2)
+    table.add_column("Risk", ratio=2)
+
+    for i, a in enumerate(assumptions, start=1):
+        severity = a.get("severity", "medium")
+        style = _SEVERITY_STYLE.get(severity, "")
+        table.add_row(
+            str(i),
+            f"[{style}]{severity.upper()}[/{style}]" if style else severity.upper(),
+            a.get("category", ""),
+            a.get("evidence", ""),
+            a.get("assumption", ""),
+            a.get("risk", ""),
+        )
+
+    console.print(table)
