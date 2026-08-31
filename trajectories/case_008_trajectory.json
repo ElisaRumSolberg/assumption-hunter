@@ -1,0 +1,110 @@
+{
+  "case": "case_008_unauthenticated_delete",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The caller of delete_document is always authenticated and authorized before the function is invoked.",
+          "category": "security",
+          "evidence": "src/documents.py",
+          "risk": "An anonymous or unauthorized user can delete documents because the request object is never validated, resulting in a silent security failure."
+        },
+        {
+          "assumption": "The document_id provided to the DocumentStore.delete method always exists in the internal dictionary.",
+          "category": "logic",
+          "evidence": "src/documents.py",
+          "risk": "If a non-existent document_id is passed, the application will raise a KeyError and crash, as there is no check before the 'del' operation."
+        },
+        {
+          "assumption": "The request parameter passed to delete_document is a valid object that requires no inspection.",
+          "category": "architecture",
+          "evidence": "src/documents.py",
+          "risk": "The function signature implies dependency on a request context that is entirely ignored, leading to fragile code that violates the principle of least privilege."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The caller of the delete_document function is always authenticated and authorized to delete the specified resource.",
+          "category": "auth",
+          "evidence": "src/documents.py",
+          "risk": "Unauthenticated or unauthorized users can delete documents, leading to unauthorized data loss and security breaches."
+        },
+        {
+          "assumption": "The document_id provided to the delete method always exists within the _docs dictionary.",
+          "category": "data",
+          "evidence": "src/documents.py",
+          "risk": "If a non-existent document_id is provided, the code will raise a KeyError, potentially causing the application to crash or return a 500 Internal Server Error."
+        },
+        {
+          "assumption": "The document storage is intended to be ephemeral and stored only in volatile memory.",
+          "category": "environment",
+          "evidence": "src/documents.py",
+          "risk": "All stored documents will be lost whenever the application process restarts or the server reboots."
+        },
+        {
+          "assumption": "The request object passed to delete_document will always be present and follow a valid structure, even if its properties are not accessed.",
+          "category": "api",
+          "evidence": "src/documents.py",
+          "risk": "If the function is called without a request object or with a null value, it might fail in middleware or later stages if the code is refactored to use it."
+        },
+        {
+          "assumption": "A document can be deleted immediately without checking for external references, locks, or ownership constraints.",
+          "category": "business_rule",
+          "evidence": "src/documents.py",
+          "risk": "Users may delete documents belonging to others or documents that are currently in use by other system processes, causing data integrity issues."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The caller of the delete_document function is always authenticated and authorized to delete the specified resource.",
+          "category": "auth",
+          "evidence": "src/documents.py",
+          "risk": "Unauthenticated or unauthorized users can delete documents, leading to unauthorized data loss and security breaches.",
+          "status": "SUPPORTED",
+          "verification_note": "The delete_document function directly deletes the resource based on the provided ID without performing any authentication or authorization checks on the request object."
+        },
+        {
+          "assumption": "The document_id provided to the delete method always exists within the _docs dictionary.",
+          "category": "data",
+          "evidence": "src/documents.py",
+          "risk": "If a non-existent document_id is provided, the code will raise a KeyError, potentially causing the application to crash or return a 500 Internal Server Error.",
+          "status": "SUPPORTED",
+          "verification_note": "The delete method directly calls del on the dictionary without checking for the key's existence or handling a potential KeyError."
+        },
+        {
+          "assumption": "The document storage is intended to be ephemeral and stored only in volatile memory.",
+          "category": "environment",
+          "evidence": "src/documents.py",
+          "risk": "All stored documents will be lost whenever the application process restarts or the server reboots.",
+          "status": "SUPPORTED",
+          "verification_note": "The DocumentStore class uses a standard Python dictionary to store documents in-memory with no logic for disk persistence or external database connectivity."
+        },
+        {
+          "assumption": "The request object passed to delete_document will always be present and follow a valid structure, even if its properties are not accessed.",
+          "category": "api",
+          "evidence": "src/documents.py",
+          "risk": "If the function is called without a request object or with a null value, it might fail in middleware or later stages if the code is refactored to use it.",
+          "status": "PARTIALLY_SUPPORTED",
+          "verification_note": "The function signature requires the `request` argument to be present, but since the body never accesses the object, the code does not rely on it having a specific 'valid structure'."
+        },
+        {
+          "assumption": "A document can be deleted immediately without checking for external references, locks, or ownership constraints.",
+          "category": "business_rule",
+          "evidence": "src/documents.py",
+          "risk": "Users may delete documents belonging to others or documents that are currently in use by other system processes, causing data integrity issues.",
+          "status": "SUPPORTED",
+          "verification_note": "The code performs a direct dictionary deletion in both the DocumentStore class and the handler function without implementing any checks for locks, ownership, or external references."
+        }
+      ]
+    }
+  }
+}

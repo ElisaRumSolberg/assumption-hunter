@@ -1,0 +1,84 @@
+{
+  "case": "case_003_missing_env_var",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The DATABASE_URL environment variable is always present in the execution environment.",
+          "category": "Environment Configuration",
+          "evidence": "src/config.py",
+          "risk": "The application will raise a KeyError and crash during initialization or database connection attempts if the DATABASE_URL environment variable is missing."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The DATABASE_URL environment variable is always defined in the host environment.",
+          "category": "environment",
+          "evidence": "src/config.py",
+          "risk": "The application will crash with a KeyError immediately upon calling get_database_url(), preventing the service from starting."
+        },
+        {
+          "assumption": "The value retrieved from DATABASE_URL is a correctly formatted and valid connection string.",
+          "category": "data",
+          "evidence": "src/config.py",
+          "risk": "Downstream database drivers will fail to parse the string, leading to unhandled connection exceptions at runtime."
+        },
+        {
+          "assumption": "A static connection pool size of 5 is sufficient for all deployment scenarios and database limits.",
+          "category": "business_rule",
+          "evidence": "src/config.py",
+          "risk": "Under high load, the application may exhaust available connections, or conversely, it may exceed the connection limit allowed by the database server."
+        },
+        {
+          "assumption": "The DATABASE_URL provided in the environment includes all necessary authentication credentials (username/password) required for access.",
+          "category": "auth",
+          "evidence": "src/config.py",
+          "risk": "Connections will be rejected with 'Access Denied' errors if the environment variable only provides the host address without necessary credentials."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The DATABASE_URL environment variable is always defined in the host environment.",
+          "category": "environment",
+          "evidence": "src/config.py",
+          "risk": "The application will crash with a KeyError immediately upon calling get_database_url(), preventing the service from starting.",
+          "status": "SUPPORTED",
+          "verification_note": "The code directly accesses os.environ[\"DATABASE_URL\"] without any fallback or check, and the docstring explicitly acknowledges this assumption."
+        },
+        {
+          "assumption": "The value retrieved from DATABASE_URL is a correctly formatted and valid connection string.",
+          "category": "data",
+          "evidence": "src/config.py",
+          "risk": "Downstream database drivers will fail to parse the string, leading to unhandled connection exceptions at runtime.",
+          "status": "SUPPORTED",
+          "verification_note": "The code retrieves the DATABASE_URL and includes it in the connection info dictionary without any validation, parsing, or formatting checks."
+        },
+        {
+          "assumption": "A static connection pool size of 5 is sufficient for all deployment scenarios and database limits.",
+          "category": "business_rule",
+          "evidence": "src/config.py",
+          "risk": "Under high load, the application may exhaust available connections, or conversely, it may exceed the connection limit allowed by the database server.",
+          "status": "SUPPORTED",
+          "verification_note": "The code hardcodes the pool size to 5 in build_connection_info without providing any mechanism for configuration or adjustment based on the environment."
+        },
+        {
+          "assumption": "The DATABASE_URL provided in the environment includes all necessary authentication credentials (username/password) required for access.",
+          "category": "auth",
+          "evidence": "src/config.py",
+          "risk": "Connections will be rejected with 'Access Denied' errors if the environment variable only provides the host address without necessary credentials.",
+          "status": "SUPPORTED",
+          "verification_note": "The code uses the DATABASE_URL as the sole source of connection information without providing separate fields for username or password, relying on the URL to be self-contained for authentication."
+        }
+      ]
+    }
+  }
+}

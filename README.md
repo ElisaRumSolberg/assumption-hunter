@@ -26,7 +26,7 @@ reviewing an unfamiliar codebase before it breaks in production.
 - `docs/ARCHITECTURE.md` — implemented pipeline + target 5-agent architecture + what was
   considered but not built
 - `docs/VIDEO_SCRIPT.md` — outline for the solution video
-- `trajectories/` — representative agent trajectories for the baseline and each advanced stage
+- `trajectories/` — one trajectory per case (baseline + both advanced stages), all 10 cases
 
 ## Quickstart
 

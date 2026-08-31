@@ -1,0 +1,84 @@
+{
+  "case": "case_005_utc_timezone",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The 'event_time' parameter provided to is_event_upcoming is always a timezone-aware UTC datetime.",
+          "category": "Time and Date Handling",
+          "evidence": "src/scheduler.py",
+          "risk": "If a caller passes an offset-naive datetime, the comparison 'event_time > now' will raise a TypeError: 'can't compare offset-naive and offset-aware datetimes', causing the application to crash."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The event_time parameter is always a timezone-aware datetime object.",
+          "category": "time",
+          "evidence": "src/scheduler.py",
+          "risk": "A TypeError will be raised when comparing an offset-naive datetime to an offset-aware datetime, causing the application to crash."
+        },
+        {
+          "assumption": "The event_time parameter is never None or a non-datetime object.",
+          "category": "data",
+          "evidence": "src/scheduler.py",
+          "risk": "The comparison operator will raise a TypeError if event_time is None or an incompatible type."
+        },
+        {
+          "assumption": "The system clock on the hosting environment is accurate and synchronized.",
+          "category": "environment",
+          "evidence": "src/scheduler.py",
+          "risk": "If the system clock is incorrect, the function will return false results regarding whether an event is actually in the future."
+        },
+        {
+          "assumption": "An event occurring at the exact current microsecond is not considered upcoming.",
+          "category": "business_rule",
+          "evidence": "src/scheduler.py",
+          "risk": "Events that coincide exactly with the calculation time will be filtered out, which may violate requirements if the check should be inclusive (greater than or equal to)."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The event_time parameter is always a timezone-aware datetime object.",
+          "category": "time",
+          "evidence": "src/scheduler.py",
+          "risk": "A TypeError will be raised when comparing an offset-naive datetime to an offset-aware datetime, causing the application to crash.",
+          "status": "SUPPORTED",
+          "verification_note": "The docstring explicitly states this assumption and the code performs a direct comparison with a timezone-aware object without any guards or type checks."
+        },
+        {
+          "assumption": "The event_time parameter is never None or a non-datetime object.",
+          "category": "data",
+          "evidence": "src/scheduler.py",
+          "risk": "The comparison operator will raise a TypeError if event_time is None or an incompatible type.",
+          "status": "SUPPORTED",
+          "verification_note": "The function performs a direct comparison on event_time without any null checks or type validation, indicating a reliance on it being a valid datetime object."
+        },
+        {
+          "assumption": "The system clock on the hosting environment is accurate and synchronized.",
+          "category": "environment",
+          "evidence": "src/scheduler.py",
+          "risk": "If the system clock is incorrect, the function will return false results regarding whether an event is actually in the future.",
+          "status": "SUPPORTED",
+          "verification_note": "The function uses datetime.now() to make a logical comparison without any validation or external synchronization check for the system clock's accuracy."
+        },
+        {
+          "assumption": "An event occurring at the exact current microsecond is not considered upcoming.",
+          "category": "business_rule",
+          "evidence": "src/scheduler.py",
+          "risk": "Events that coincide exactly with the calculation time will be filtered out, which may violate requirements if the check should be inclusive (greater than or equal to).",
+          "status": "SUPPORTED",
+          "verification_note": "The function uses a strict greater-than comparison, meaning an event time exactly equal to the current time will return False."
+        }
+      ]
+    }
+  }
+}

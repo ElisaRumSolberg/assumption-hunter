@@ -1,0 +1,62 @@
+{
+  "case": "case_010_multiple_interacting_assumptions",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The 'REPORT_TIMEZONE' environment variable is always set in the environment.",
+          "category": "environment",
+          "evidence": "src/report_scheduler.py",
+          "risk": "Accessing os.environ['REPORT_TIMEZONE'] will raise a KeyError if the variable is missing, causing the function to fail."
+        },
+        {
+          "assumption": "The 'run_at' input parameter is always a timezone-aware datetime object.",
+          "category": "time",
+          "evidence": "src/report_scheduler.py",
+          "risk": "Comparing a naive datetime object with a timezone-aware datetime object (created via datetime.now(timezone.utc)) will raise a TypeError."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The environment variable 'REPORT_TIMEZONE' is always defined and accessible.",
+          "category": "environment",
+          "evidence": "src/report_scheduler.py",
+          "risk": "If the environment variable is missing, the code will raise a KeyError when attempting to access os.environ['REPORT_TIMEZONE'], causing the application to crash."
+        },
+        {
+          "assumption": "The 'run_at' argument is always a timezone-aware datetime object.",
+          "category": "time",
+          "evidence": "src/report_scheduler.py",
+          "risk": "If 'run_at' is a naive datetime object, comparing it to the timezone-aware 'now' object will raise a TypeError, preventing the report from being scheduled."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The environment variable 'REPORT_TIMEZONE' is always defined and accessible.",
+          "category": "environment",
+          "evidence": "src/report_scheduler.py",
+          "risk": "If the environment variable is missing, the code will raise a KeyError when attempting to access os.environ['REPORT_TIMEZONE'], causing the application to crash.",
+          "status": "SUPPORTED",
+          "verification_note": "The code directly accesses os.environ[\"REPORT_TIMEZONE\"] without any default value or existence check, which will raise a KeyError if the variable is not defined."
+        },
+        {
+          "assumption": "The 'run_at' argument is always a timezone-aware datetime object.",
+          "category": "time",
+          "evidence": "src/report_scheduler.py",
+          "risk": "If 'run_at' is a naive datetime object, comparing it to the timezone-aware 'now' object will raise a TypeError, preventing the report from being scheduled.",
+          "status": "SUPPORTED",
+          "verification_note": "The code performs a direct comparison between 'run_at' and a timezone-aware datetime object without any checks, which would fail if 'run_at' were naive."
+        }
+      ]
+    }
+  }
+}

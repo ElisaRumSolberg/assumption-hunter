@@ -1,0 +1,84 @@
+{
+  "case": "case_009_username_uniqueness",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "Usernames provided to the register method are always unique and do not already exist in the registry.",
+          "category": "Business Logic",
+          "evidence": "src/registry.py",
+          "risk": "Registering a duplicate username silently overwrites the existing user's data (e.g., email), leading to unauthorized account takeover and data corruption."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "Usernames provided to the register method are unique and do not already exist in the system.",
+          "category": "business_rule",
+          "evidence": "src/registry.py",
+          "risk": "Existing accounts can be silently overwritten, leading to unauthorized account takeovers or data loss."
+        },
+        {
+          "assumption": "The email string provided is a valid and properly formatted email address.",
+          "category": "data",
+          "evidence": "src/registry.py",
+          "risk": "The system may store malformed or malicious strings, causing failures in downstream communication services."
+        },
+        {
+          "assumption": "The application process has sufficient volatile memory to store the user dictionary and does not require data persistence across restarts.",
+          "category": "environment",
+          "evidence": "src/registry.py",
+          "risk": "All user registration data is lost if the process crashes or restarts, and the system may crash if the dictionary exceeds available RAM."
+        },
+        {
+          "assumption": "The caller of the register method is authorized to create or modify user records.",
+          "category": "auth",
+          "evidence": "src/registry.py",
+          "risk": "Any internal component or unauthenticated actor with access to the registry instance can overwrite any user's email without permission checks."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "Usernames provided to the register method are unique and do not already exist in the system.",
+          "category": "business_rule",
+          "evidence": "src/registry.py",
+          "risk": "Existing accounts can be silently overwritten, leading to unauthorized account takeovers or data loss.",
+          "status": "SUPPORTED",
+          "verification_note": "The register method directly overwrites dictionary entries without checking if the username exists, and the docstring explicitly states it assumes uniqueness."
+        },
+        {
+          "assumption": "The email string provided is a valid and properly formatted email address.",
+          "category": "data",
+          "evidence": "src/registry.py",
+          "risk": "The system may store malformed or malicious strings, causing failures in downstream communication services.",
+          "status": "SUPPORTED",
+          "verification_note": "The register method accepts the email string and stores it in the dictionary without performing any validation or format checks."
+        },
+        {
+          "assumption": "The application process has sufficient volatile memory to store the user dictionary and does not require data persistence across restarts.",
+          "category": "environment",
+          "evidence": "src/registry.py",
+          "risk": "All user registration data is lost if the process crashes or restarts, and the system may crash if the dictionary exceeds available RAM.",
+          "status": "SUPPORTED",
+          "verification_note": "The class uses a standard in-memory dictionary for data storage without any disk persistence or memory management logic, implicitly assuming that volatile memory is sufficient and data loss on restart is acceptable."
+        },
+        {
+          "assumption": "The caller of the register method is authorized to create or modify user records.",
+          "category": "auth",
+          "evidence": "src/registry.py",
+          "risk": "Any internal component or unauthenticated actor with access to the registry instance can overwrite any user's email without permission checks.",
+          "status": "SUPPORTED",
+          "verification_note": "The register method performs a state-modifying operation on the user database without any authentication checks, thereby relying on the caller to be authorized."
+        }
+      ]
+    }
+  }
+}

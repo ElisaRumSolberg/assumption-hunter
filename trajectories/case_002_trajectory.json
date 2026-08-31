@@ -1,0 +1,110 @@
+{
+  "case": "case_002_empty_search_results",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "Search results are never empty.",
+          "category": "Data",
+          "evidence": "src/search.py",
+          "risk": "When a query matches no items in the catalog, search_products returns an empty list. Attempting to access results[0] in best_match will raise an IndexError: list index out of range."
+        },
+        {
+          "assumption": "Every dictionary item in the catalog contains a 'name' key.",
+          "category": "Data Structure",
+          "evidence": "src/search.py",
+          "risk": "If an item in the catalog list is missing the 'name' key, the list comprehension in search_products will raise a KeyError."
+        },
+        {
+          "assumption": "The value associated with the 'name' key is always a string.",
+          "category": "Data Type",
+          "evidence": "src/search.py",
+          "risk": "The code calls .lower() on item['name']. If the value is None or a non-string type (like an integer), an AttributeError will be raised."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The search operation will always return at least one matching product for any given query.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "The application will crash with an IndexError when trying to access the first element of an empty results list."
+        },
+        {
+          "assumption": "Every dictionary object within the catalog list contains a key named 'name'.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "A KeyError will be raised if an item in the catalog is missing the expected 'name' property."
+        },
+        {
+          "assumption": "The first item found in the catalog that contains the query substring is the most relevant or 'best' match.",
+          "category": "business_rule",
+          "evidence": "src/search.py",
+          "risk": "The user may be presented with a low-relevance result because the code lacks sorting or ranking logic (e.g., exact matches vs substring matches)."
+        },
+        {
+          "assumption": "The runtime environment uses Python 3.9 or later, which supports the 'list[dict]' type hint syntax.",
+          "category": "environment",
+          "evidence": "src/search.py",
+          "risk": "The application will fail to start with a TypeError or SyntaxError in environments running older versions of Python where built-in collections are not subscriptable."
+        },
+        {
+          "assumption": "The 'catalog' parameter passed to the functions is always an iterable list and never None.",
+          "category": "api",
+          "evidence": "src/search.py",
+          "risk": "A TypeError will occur in the list comprehension or when calling len() if an upstream data source or API fails to provide the catalog data."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The search operation will always return at least one matching product for any given query.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "The application will crash with an IndexError when trying to access the first element of an empty results list.",
+          "status": "SUPPORTED",
+          "verification_note": "The best_match function lacks an empty-list check and its docstring explicitly states that it assumes search always returns at least one result."
+        },
+        {
+          "assumption": "Every dictionary object within the catalog list contains a key named 'name'.",
+          "category": "data",
+          "evidence": "src/search.py",
+          "risk": "A KeyError will be raised if an item in the catalog is missing the expected 'name' property.",
+          "status": "SUPPORTED",
+          "verification_note": "The function search_products directly accesses item['name'] for every dictionary in the catalog list without any safety checks or error handling."
+        },
+        {
+          "assumption": "The first item found in the catalog that contains the query substring is the most relevant or 'best' match.",
+          "category": "business_rule",
+          "evidence": "src/search.py",
+          "risk": "The user may be presented with a low-relevance result because the code lacks sorting or ranking logic (e.g., exact matches vs substring matches).",
+          "status": "SUPPORTED",
+          "verification_note": "The best_match function directly returns the first element from the search results without any ranking or sorting, implying that the first match found is the intended result."
+        },
+        {
+          "assumption": "The runtime environment uses Python 3.9 or later, which supports the 'list[dict]' type hint syntax.",
+          "category": "environment",
+          "evidence": "src/search.py",
+          "risk": "The application will fail to start with a TypeError or SyntaxError in environments running older versions of Python where built-in collections are not subscriptable.",
+          "status": "SUPPORTED",
+          "verification_note": "The file uses built-in generic type hints like 'list[dict]' in function signatures, which requires Python 3.9 or later to execute without a TypeError."
+        },
+        {
+          "assumption": "The 'catalog' parameter passed to the functions is always an iterable list and never None.",
+          "category": "api",
+          "evidence": "src/search.py",
+          "risk": "A TypeError will occur in the list comprehension or when calling len() if an upstream data source or API fails to provide the catalog data.",
+          "status": "SUPPORTED",
+          "verification_note": "The functions directly iterate over the 'catalog' parameter without checking for None, which would cause a TypeError if the assumption were false."
+        }
+      ]
+    }
+  }
+}

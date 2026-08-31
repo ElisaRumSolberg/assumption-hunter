@@ -1,0 +1,110 @@
+{
+  "case": "case_006_config_always_exists",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The configuration file always exists at the provided file path.",
+          "category": "environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a FileNotFoundError and crash if the file is missing, deleted, or the path is incorrect."
+        },
+        {
+          "assumption": "The content of the configuration file is always valid JSON.",
+          "category": "data validation",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a json.JSONDecodeError if the file is empty or contains malformed data."
+        },
+        {
+          "assumption": "The process has the necessary file system permissions to read the file.",
+          "category": "environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a PermissionError if the user does not have read access to the file."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The configuration file always exists at the path provided to the function.",
+          "category": "environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The call to open() will raise a FileNotFoundError, causing the application to crash during initialization if the file is missing."
+        },
+        {
+          "assumption": "The content of the configuration file is valid JSON.",
+          "category": "data",
+          "evidence": "src/settings_loader.py",
+          "risk": "If the file is empty or contains malformed data, json.load() will raise a JSONDecodeError."
+        },
+        {
+          "assumption": "The process running the code has the necessary file system permissions to read the file at the specified path.",
+          "category": "auth",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a PermissionError and fail to load settings if read access is denied."
+        },
+        {
+          "assumption": "The JSON data in the configuration file represents a dictionary (mapping) object.",
+          "category": "data",
+          "evidence": "src/settings_loader.py",
+          "risk": "The function's type hint indicates a dict return; if the JSON contains a list or a string, downstream code expecting dictionary methods will raise an AttributeError."
+        },
+        {
+          "assumption": "A valid configuration file is a mandatory requirement for the application to start.",
+          "category": "business_rule",
+          "evidence": "src/settings_loader.py",
+          "risk": "Because there is no try-except block or default return value, the application has no mechanism to fall back to default settings if the file operation fails."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The configuration file always exists at the path provided to the function.",
+          "category": "environment",
+          "evidence": "src/settings_loader.py",
+          "risk": "The call to open() will raise a FileNotFoundError, causing the application to crash during initialization if the file is missing.",
+          "status": "SUPPORTED",
+          "verification_note": "The code calls open() directly without any existence checks or error handling, and the docstring explicitly confirms the assumption."
+        },
+        {
+          "assumption": "The content of the configuration file is valid JSON.",
+          "category": "data",
+          "evidence": "src/settings_loader.py",
+          "risk": "If the file is empty or contains malformed data, json.load() will raise a JSONDecodeError.",
+          "status": "SUPPORTED",
+          "verification_note": "The code calls json.load() directly on the file contents without any error handling for invalid JSON formatting."
+        },
+        {
+          "assumption": "The process running the code has the necessary file system permissions to read the file at the specified path.",
+          "category": "auth",
+          "evidence": "src/settings_loader.py",
+          "risk": "The application will raise a PermissionError and fail to load settings if read access is denied.",
+          "status": "SUPPORTED",
+          "verification_note": "The code directly calls `open(config_path)` without any `try-except` blocks or permission checks, implicitly assuming the process has the necessary read rights."
+        },
+        {
+          "assumption": "The JSON data in the configuration file represents a dictionary (mapping) object.",
+          "category": "data",
+          "evidence": "src/settings_loader.py",
+          "risk": "The function's type hint indicates a dict return; if the JSON contains a list or a string, downstream code expecting dictionary methods will raise an AttributeError.",
+          "status": "SUPPORTED",
+          "verification_note": "The function type hint specifies a dictionary return type and the code returns the result of json.load directly without verifying that the root JSON element is a mapping."
+        },
+        {
+          "assumption": "A valid configuration file is a mandatory requirement for the application to start.",
+          "category": "business_rule",
+          "evidence": "src/settings_loader.py",
+          "risk": "Because there is no try-except block or default return value, the application has no mechanism to fall back to default settings if the file operation fails.",
+          "status": "SUPPORTED",
+          "verification_note": "The function attempts to open and parse the configuration file directly without any error handling or fallback, and the docstring explicitly states it assumes the file exists."
+        }
+      ]
+    }
+  }
+}

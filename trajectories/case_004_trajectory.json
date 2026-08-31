@@ -1,0 +1,118 @@
+{
+  "case": "case_004_api_always_json",
+  "baseline": {
+    "agent_instructions": "Single prompt, no tools, no retry (see baseline/baseline.py BASELINE_PROMPT).",
+    "final_output": {
+      "assumptions": [
+        {
+          "assumption": "The external weather API always returns a valid and parseable JSON response body.",
+          "category": "API Integration",
+          "evidence": "src/weather_client.py",
+          "risk": "If the API returns an HTML error page (e.g., a 503 Service Unavailable or 404 Not Found), the call to response.json() will raise a ValueError or JSONDecodeError, causing the application to crash."
+        },
+        {
+          "assumption": "The HTTP request is always successful (e.g., returns a 200 OK status code).",
+          "category": "API Integration",
+          "evidence": "src/weather_client.py",
+          "risk": "The code does not check the status code of the response before attempting to parse the body. This could result in the application attempting to process error data as valid weather information or failing during parsing."
+        }
+      ]
+    }
+  },
+  "advanced_v1": {
+    "stage_1_context_and_assumption_analyzer": {
+      "agent_instructions": "Category-driven candidate mining prompt (see src/assumption_hunter/agents/context_analyzer.py CONTEXT_AND_ASSUMPTION_PROMPT).",
+      "output_candidates": [
+        {
+          "assumption": "The external weather API always returns a valid JSON response body.",
+          "category": "api",
+          "evidence": "src/weather_client.py",
+          "risk": "If the API returns an HTML error page (e.g., 503 Service Unavailable), response.json() will raise a ValueError or JSONDecodeError, crashing the application."
+        },
+        {
+          "assumption": "The 'city' input string is already URL-encoded and contains no characters that would invalidate the URL structure.",
+          "category": "data",
+          "evidence": "src/weather_client.py",
+          "risk": "If a city name contains spaces or special characters (e.g., 'San Francisco'), the resulting URL might be malformed or cause a 400 Bad Request error if the http_get implementation does not handle encoding."
+        },
+        {
+          "assumption": "The weather API is publicly accessible and does not require any authentication tokens, API keys, or headers.",
+          "category": "auth",
+          "evidence": "src/weather_client.py",
+          "risk": "The request will fail with a 401 Unauthorized or 403 Forbidden error if the API provider requires credentials that are not being passed."
+        },
+        {
+          "assumption": "The external domain 'api.example.com' is reachable and DNS is resolvable from the execution environment.",
+          "category": "environment",
+          "evidence": "src/weather_client.py",
+          "risk": "The application will throw a connection error or DNS resolution error if the environment has restricted outbound traffic or the domain is down."
+        },
+        {
+          "assumption": "The http_get callable will always return an object that has a .json() method.",
+          "category": "business_rule",
+          "evidence": "src/weather_client.py",
+          "risk": "If the http_get implementation returns None or a different object type due to a connection failure, an AttributeError will be raised."
+        },
+        {
+          "assumption": "The API request will complete within a reasonable timeframe without needing an explicit timeout.",
+          "category": "time",
+          "evidence": "src/weather_client.py",
+          "risk": "The application could hang indefinitely if the external API server is unresponsive and the http_get implementation does not have a default timeout."
+        }
+      ]
+    },
+    "stage_2_evidence_checker": {
+      "agent_instructions": "Re-reads the cited evidence file from disk and classifies SUPPORTED/PARTIALLY_SUPPORTED/UNVERIFIED/CONTRADICTED (see src/assumption_hunter/agents/evidence_checker.py EVIDENCE_CHECK_PROMPT).",
+      "output_checked_with_verdicts": [
+        {
+          "assumption": "The external weather API always returns a valid JSON response body.",
+          "category": "api",
+          "evidence": "src/weather_client.py",
+          "risk": "If the API returns an HTML error page (e.g., 503 Service Unavailable), response.json() will raise a ValueError or JSONDecodeError, crashing the application.",
+          "status": "SUPPORTED",
+          "verification_note": "The function calls .json() directly on the response without any error handling or checks, and the docstring explicitly states this assumption."
+        },
+        {
+          "assumption": "The 'city' input string is already URL-encoded and contains no characters that would invalidate the URL structure.",
+          "category": "data",
+          "evidence": "src/weather_client.py",
+          "risk": "If a city name contains spaces or special characters (e.g., 'San Francisco'), the resulting URL might be malformed or cause a 400 Bad Request error if the http_get implementation does not handle encoding.",
+          "status": "SUPPORTED",
+          "verification_note": "The code directly embeds the 'city' variable into a URL string using an f-string without any encoding or validation logic, implying it must already be URL-safe."
+        },
+        {
+          "assumption": "The weather API is publicly accessible and does not require any authentication tokens, API keys, or headers.",
+          "category": "auth",
+          "evidence": "src/weather_client.py",
+          "risk": "The request will fail with a 401 Unauthorized or 403 Forbidden error if the API provider requires credentials that are not being passed.",
+          "status": "SUPPORTED",
+          "verification_note": "The fetch_weather function makes a GET request using only the city parameter in the URL and does not provide any headers, tokens, or other authentication mechanisms."
+        },
+        {
+          "assumption": "The external domain 'api.example.com' is reachable and DNS is resolvable from the execution environment.",
+          "category": "environment",
+          "evidence": "src/weather_client.py",
+          "risk": "The application will throw a connection error or DNS resolution error if the environment has restricted outbound traffic or the domain is down.",
+          "status": "SUPPORTED",
+          "verification_note": "The code directly attempts a network request to the specified domain without any error handling for DNS failure or connection issues."
+        },
+        {
+          "assumption": "The http_get callable will always return an object that has a .json() method.",
+          "category": "business_rule",
+          "evidence": "src/weather_client.py",
+          "risk": "If the http_get implementation returns None or a different object type due to a connection failure, an AttributeError will be raised.",
+          "status": "SUPPORTED",
+          "verification_note": "The code calls response.json() directly on the object returned by http_get without checking for the method's existence or handling potential errors."
+        },
+        {
+          "assumption": "The API request will complete within a reasonable timeframe without needing an explicit timeout.",
+          "category": "time",
+          "evidence": "src/weather_client.py",
+          "risk": "The application could hang indefinitely if the external API server is unresponsive and the http_get implementation does not have a default timeout.",
+          "status": "SUPPORTED",
+          "verification_note": "The code makes a network request using http_get without specifying a timeout or implementing any mechanism to handle potential delays."
+        }
+      ]
+    }
+  }
+}
